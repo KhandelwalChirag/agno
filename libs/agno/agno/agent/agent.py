@@ -57,6 +57,7 @@ from agno.run.agent import (
 )
 from agno.run.requirement import RunRequirement
 from agno.session import AgentSession, SessionSummaryManager, TeamSession, WorkflowSession
+from agno.session.rolling import RollingCompactionManager
 from agno.session.summary import SessionSummary
 from agno.skills import Skills
 from agno.tools import Toolkit
@@ -106,6 +107,8 @@ class Agent:
     add_session_summary_to_context: Optional[bool] = None
     # Session summary manager
     session_summary_manager: Optional[SessionSummaryManager] = None
+    # Rolling compaction manager
+    rolling_compaction_manager: Optional["RollingCompactionManager"] = None
 
     # --- Agent Dependencies ---
     # Dependencies available for tools and prompt functions
@@ -414,6 +417,7 @@ class Agent:
         enable_session_summaries: bool = False,
         add_session_summary_to_context: Optional[bool] = None,
         session_summary_manager: Optional[SessionSummaryManager] = None,
+        rolling_compaction_manager: Optional["RollingCompactionManager"] = None,
         compress_tool_results: bool = False,
         compression_manager: Optional[CompressionManager] = None,
         add_history_to_context: bool = False,
@@ -556,6 +560,7 @@ class Agent:
             self.enable_session_summaries = True
 
         self.add_session_summary_to_context = add_session_summary_to_context
+        self.rolling_compaction_manager = rolling_compaction_manager
 
         # Context compression settings
         self.compress_tool_results = compress_tool_results

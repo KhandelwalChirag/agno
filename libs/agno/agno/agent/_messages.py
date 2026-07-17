@@ -386,15 +386,27 @@ def get_system_message(
             )
 
     # 3.3.11 Then add a summary of the interaction to the system prompt
-    if agent.add_session_summary_to_context and session.summary is not None:
-        system_message_content += "Here is a brief summary of your previous interactions:\n\n"
-        system_message_content += "<summary_of_previous_interactions>\n"
-        system_message_content += session.summary.summary
-        system_message_content += "\n</summary_of_previous_interactions>\n\n"
-        system_message_content += (
-            "Note: this information is from previous interactions and may be outdated. "
-            "You should ALWAYS prefer information from this conversation over the past summary.\n\n"
-        )
+    if hasattr(session, "rolling_compaction_state") and session.rolling_compaction_state is not None:
+        if session.rolling_compaction_state.summary:
+            system_message_content += "Here is a brief summary of your previous interactions:\n\n"
+            system_message_content += "<summary_of_previous_interactions>\n"
+            system_message_content += session.rolling_compaction_state.summary
+            system_message_content += "\n</summary_of_previous_interactions>\n\n"
+            system_message_content += (
+                "Note: this information is from previous interactions and may be outdated. "
+                "You should ALWAYS prefer information from this conversation over the past summary.\n\n"
+            )
+    elif agent.add_session_summary_to_context and getattr(session, "summary", None) is not None:
+        session_summary = getattr(session, "summary", None)
+        if session_summary is not None and session_summary.summary is not None:
+            system_message_content += "Here is a brief summary of your previous interactions:\n\n"
+            system_message_content += "<summary_of_previous_interactions>\n"
+            system_message_content += session_summary.summary
+            system_message_content += "\n</summary_of_previous_interactions>\n\n"
+            system_message_content += (
+                "Note: this information is from previous interactions and may be outdated. "
+                "You should ALWAYS prefer information from this conversation over the past summary.\n\n"
+            )
 
     # 3.3.12 then add learnings to the system prompt
     if agent._learning is not None and agent.add_learnings_to_context:
@@ -737,15 +749,27 @@ async def aget_system_message(
             )
 
     # 3.3.11 Then add a summary of the interaction to the system prompt
-    if agent.add_session_summary_to_context and session.summary is not None:
-        system_message_content += "Here is a brief summary of your previous interactions:\n\n"
-        system_message_content += "<summary_of_previous_interactions>\n"
-        system_message_content += session.summary.summary
-        system_message_content += "\n</summary_of_previous_interactions>\n\n"
-        system_message_content += (
-            "Note: this information is from previous interactions and may be outdated. "
-            "You should ALWAYS prefer information from this conversation over the past summary.\n\n"
-        )
+    if hasattr(session, "rolling_compaction_state") and session.rolling_compaction_state is not None:
+        if session.rolling_compaction_state.summary:
+            system_message_content += "Here is a brief summary of your previous interactions:\n\n"
+            system_message_content += "<summary_of_previous_interactions>\n"
+            system_message_content += session.rolling_compaction_state.summary
+            system_message_content += "\n</summary_of_previous_interactions>\n\n"
+            system_message_content += (
+                "Note: this information is from previous interactions and may be outdated. "
+                "You should ALWAYS prefer information from this conversation over the past summary.\n\n"
+            )
+    elif agent.add_session_summary_to_context and getattr(session, "summary", None) is not None:
+        session_summary = getattr(session, "summary", None)
+        if session_summary is not None and session_summary.summary is not None:
+            system_message_content += "Here is a brief summary of your previous interactions:\n\n"
+            system_message_content += "<summary_of_previous_interactions>\n"
+            system_message_content += session_summary.summary
+            system_message_content += "\n</summary_of_previous_interactions>\n\n"
+            system_message_content += (
+                "Note: this information is from previous interactions and may be outdated. "
+                "You should ALWAYS prefer information from this conversation over the past summary.\n\n"
+            )
 
     # 3.3.12 then add learnings to the system prompt
     if agent._learning is not None and agent.add_learnings_to_context:
@@ -1453,8 +1477,26 @@ async def aget_run_messages(
             agent.system_message_role if agent.system_message_role not in ["user", "assistant", "tool"] else None
         )
 
+        effective_last_n_runs = agent.num_history_runs
+        if hasattr(session, "rolling_compaction_state") and session.rolling_compaction_state is not None:
+            state = session.rolling_compaction_state
+            runs = getattr(session, "runs", [])
+            if state.compacted_through_run_id and runs:
+                uncompacted_count = 0
+                found = False
+                for i, r in enumerate(runs):
+                    if r.run_id == state.compacted_through_run_id:
+                        uncompacted_count = len(runs) - (i + 1)
+                        found = True
+                        break
+                if found:
+                    if effective_last_n_runs is None:
+                        effective_last_n_runs = uncompacted_count
+                    else:
+                        effective_last_n_runs = min(effective_last_n_runs, uncompacted_count)
+
         history: List[Message] = session.get_messages(
-            last_n_runs=agent.num_history_runs,
+            last_n_runs=effective_last_n_runs,
             limit=agent.num_history_messages,
             skip_roles=[skip_role] if skip_role else None,
             agent_id=agent.id if agent.team_id is not None else None,

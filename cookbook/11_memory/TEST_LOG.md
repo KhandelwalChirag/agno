@@ -65,3 +65,13 @@
 **Description:** Tests MemoryTools and WebSearchTools integration with user memory.
 
 ---
+
+### 09_rolling_session_compaction.py
+
+**Status:** PASS
+
+**Description:** Tests rolling session compaction where the background manager intercepts history and compresses it based on a threshold while preserving the verbatim budget.
+
+**Result:** Correctly triggered `compact` after the run threshold and returned a RollingCompactionState with an updated summary.
+
+---

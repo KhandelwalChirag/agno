@@ -7,6 +7,7 @@ from agno.models.message import Message
 from agno.run.agent import RunOutput
 from agno.run.base import RunStatus
 from agno.run.team import TeamRunOutput
+from agno.session.rolling import RollingCompactionState
 from agno.session.summary import SessionSummary
 from agno.utils.log import log_debug, log_warning
 
@@ -37,6 +38,8 @@ class AgentSession:
     runs: Optional[List[Union[RunOutput, TeamRunOutput]]] = None
     # Summary of the session
     summary: Optional["SessionSummary"] = None
+    # Rolling Compaction State of the session
+    rolling_compaction_state: Optional["RollingCompactionState"] = None
 
     # The unix timestamp when this session was created
     created_at: Optional[int] = None
@@ -48,6 +51,9 @@ class AgentSession:
 
         session_dict["runs"] = [run.to_dict() for run in self.runs] if self.runs else None
         session_dict["summary"] = self.summary.to_dict() if self.summary else None
+        session_dict["rolling_compaction_state"] = (
+            self.rolling_compaction_state.to_dict() if self.rolling_compaction_state else None
+        )
 
         return session_dict
 
@@ -70,6 +76,10 @@ class AgentSession:
         if summary is not None and isinstance(summary, dict):
             summary = SessionSummary.from_dict(summary)
 
+        rolling_compaction_state = data.get("rolling_compaction_state")
+        if rolling_compaction_state is not None and isinstance(rolling_compaction_state, dict):
+            rolling_compaction_state = RollingCompactionState.from_dict(rolling_compaction_state)
+
         metadata = data.get("metadata")
 
         return cls(
@@ -85,6 +95,7 @@ class AgentSession:
             updated_at=data.get("updated_at"),
             runs=serialized_runs,
             summary=summary,
+            rolling_compaction_state=rolling_compaction_state,
         )
 
     def upsert_run(self, run: RunOutput):

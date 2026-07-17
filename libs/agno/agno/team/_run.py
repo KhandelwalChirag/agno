@@ -464,6 +464,13 @@ def _run_tasks(
             except Exception as e:
                 log_warning(f"Error in session summary creation: {str(e)}")
 
+        if team.rolling_compaction_manager is not None:
+            session.upsert_run(run_response=run_response)
+            try:
+                team.rolling_compaction_manager.compact(session=session, run_metrics=run_response.metrics)
+            except Exception as e:
+                log_warning(f'Error in rolling compaction: {str(e)}')
+
         raise_if_cancelled(run_response.run_id)  # type: ignore
 
         # Generate followups if enabled
@@ -916,6 +923,13 @@ def _run_tasks_stream(
                 team.session_summary_manager.create_session_summary(session=session)
             except Exception as e:
                 log_warning(f"Error in session summary creation: {str(e)}")
+
+        if team.rolling_compaction_manager is not None:
+            session.upsert_run(run_response=run_response)
+            try:
+                team.rolling_compaction_manager.compact(session=session, run_metrics=run_response.metrics)
+            except Exception as e:
+                log_warning(f'Error in rolling compaction: {str(e)}')
             if stream_events:
                 yield handle_event(  # type: ignore
                     create_team_session_summary_completed_event(
@@ -2315,6 +2329,13 @@ async def _arun_tasks(
             except Exception as e:
                 log_warning(f"Error in session summary creation: {str(e)}")
 
+        if team.rolling_compaction_manager is not None:
+            team_session.upsert_run(run_response=run_response)
+            try:
+                await team.rolling_compaction_manager.acompact(session=team_session, run_metrics=run_response.metrics)
+            except Exception as e:
+                log_warning(f'Error in rolling compaction: {str(e)}')
+
         await araise_if_cancelled(run_response.run_id)  # type: ignore
 
         # Generate followups if enabled
@@ -2803,6 +2824,13 @@ async def _arun_tasks_stream(
                 await team.session_summary_manager.acreate_session_summary(session=team_session)
             except Exception as e:
                 log_warning(f"Error in session summary creation: {str(e)}")
+
+        if team.rolling_compaction_manager is not None:
+            team_session.upsert_run(run_response=run_response)
+            try:
+                await team.rolling_compaction_manager.acompact(session=team_session, run_metrics=run_response.metrics)
+            except Exception as e:
+                log_warning(f'Error in rolling compaction: {str(e)}')
             if stream_events:
                 yield handle_event(  # type: ignore
                     create_team_session_summary_completed_event(
@@ -7191,6 +7219,13 @@ def _continue_run(
                     except Exception as e:
                         log_warning(f"Error in session summary creation: {str(e)}")
 
+                if team.rolling_compaction_manager is not None:
+                    session.upsert_run(run_response=run_response)
+                    try:
+                        team.rolling_compaction_manager.compact(session=session, run_metrics=run_response.metrics)
+                    except Exception as e:
+                        log_warning(f'Error in rolling compaction: {str(e)}')
+
                 # Complete
                 run_response.status = RunStatus.completed
                 _cleanup_and_store(team, run_response=run_response, session=session)
@@ -7428,6 +7463,13 @@ def _continue_run_stream(
                         )
                     except Exception as e:
                         log_warning(f"Error in session summary creation: {str(e)}")
+
+                if team.rolling_compaction_manager is not None:
+                    session.upsert_run(run_response=run_response)
+                    try:
+                        team.rolling_compaction_manager.compact(session=session, run_metrics=run_response.metrics)
+                    except Exception as e:
+                        log_warning(f'Error in rolling compaction: {str(e)}')
                     if stream_events:
                         yield handle_event(
                             create_team_session_summary_completed_event(
@@ -8214,6 +8256,13 @@ async def _acontinue_run(
                     except Exception as e:
                         log_warning(f"Error in session summary creation: {str(e)}")
 
+                if team.rolling_compaction_manager is not None:
+                    team_session.upsert_run(run_response=run_response)
+                    try:
+                        await team.rolling_compaction_manager.acompact(session=team_session, run_metrics=run_response.metrics)
+                    except Exception as e:
+                        log_warning(f'Error in rolling compaction: {str(e)}')
+
                 run_response.status = RunStatus.completed
                 await _acleanup_and_store(team, run_response=run_response, session=team_session)
                 await alog_team_telemetry(team, session_id=team_session.session_id, run_id=run_response.run_id)
@@ -8818,6 +8867,13 @@ async def _acontinue_run_stream(
                         )
                     except Exception as e:
                         log_warning(f"Error in session summary creation: {str(e)}")
+
+                if team.rolling_compaction_manager is not None:
+                    team_session.upsert_run(run_response=run_response)
+                    try:
+                        await team.rolling_compaction_manager.acompact(session=team_session, run_metrics=run_response.metrics)
+                    except Exception as e:
+                        log_warning(f'Error in rolling compaction: {str(e)}')
                     if stream_events:
                         yield handle_event(
                             create_team_session_summary_completed_event(

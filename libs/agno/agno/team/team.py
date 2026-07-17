@@ -46,6 +46,7 @@ from agno.run.team import (
     TeamRunOutputEvent,
 )
 from agno.session import SessionSummaryManager, TeamSession
+from agno.session.rolling import RollingCompactionManager
 from agno.session.summary import SessionSummary
 from agno.skills import Skills
 from agno.team import (
@@ -130,6 +131,15 @@ class Team:
     overwrite_db_session_state: bool = False
     # If True, cache the current Team session in memory for faster access
     cache_session: bool = False
+
+    # If True, the team creates/updates session summaries at the end of runs
+    enable_session_summaries: bool = False
+    # If True, the team adds session summaries to the context
+    add_session_summary_to_context: Optional[bool] = None
+    # Session summary manager
+    session_summary_manager: Optional["SessionSummaryManager"] = None
+    # Rolling compaction manager
+    rolling_compaction_manager: Optional["RollingCompactionManager"] = None
 
     # Add this flag to control if the workflow should send the team history to the members. This means sending the team-level history to the members, not the agent-level history.
     add_team_history_to_members: bool = False
@@ -307,15 +317,6 @@ class Team:
     enable_user_memories: Optional[bool] = None
     # If True, the agent adds a reference to the user memories in the response
     add_memories_to_context: Optional[bool] = None
-    # If True, the agent creates/updates session summaries at the end of runs
-    enable_session_summaries: bool = False
-    # # Session summary model
-    # session_summary_model: Optional[Model] = None
-    # # Session summary prompt
-    # session_summary_prompt: Optional[str] = None
-    session_summary_manager: Optional[SessionSummaryManager] = None
-    # If True, the team adds session summaries to the context
-    add_session_summary_to_context: Optional[bool] = None
 
     # --- Learning Machine ---
     # LearningMachine for unified learning capabilities
@@ -525,7 +526,8 @@ class Team:
         add_memories_to_context: Optional[bool] = None,
         memory_manager: Optional[MemoryManager] = None,
         enable_session_summaries: bool = False,
-        session_summary_manager: Optional[SessionSummaryManager] = None,
+        session_summary_manager: Optional["SessionSummaryManager"] = None,
+        rolling_compaction_manager: Optional["RollingCompactionManager"] = None,
         add_session_summary_to_context: Optional[bool] = None,
         learning: Optional[Union[bool, LearningMachine]] = None,
         add_learnings_to_context: bool = True,
@@ -649,6 +651,7 @@ class Team:
             memory_manager=memory_manager,
             enable_session_summaries=enable_session_summaries,
             session_summary_manager=session_summary_manager,
+            rolling_compaction_manager=rolling_compaction_manager,
             add_session_summary_to_context=add_session_summary_to_context,
             learning=learning,
             add_learnings_to_context=add_learnings_to_context,

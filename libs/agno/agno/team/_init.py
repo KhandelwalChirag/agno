@@ -43,6 +43,7 @@ from agno.run.team import (
     TeamRunEvent,
 )
 from agno.session import SessionSummaryManager, TeamSession
+from agno.session.rolling import RollingCompactionManager
 from agno.skills import Skills
 from agno.tools import Toolkit
 from agno.tools.function import Function
@@ -153,6 +154,7 @@ def __init__(
     enable_session_summaries: bool = False,
     session_summary_manager: Optional[SessionSummaryManager] = None,
     add_session_summary_to_context: Optional[bool] = None,
+    rolling_compaction_manager: Optional["RollingCompactionManager"] = None,
     learning: Optional[Union[bool, LearningMachine]] = None,
     add_learnings_to_context: bool = True,
     compress_tool_results: bool = False,
@@ -343,6 +345,7 @@ def __init__(
     team.enable_session_summaries = enable_session_summaries
     team.session_summary_manager = session_summary_manager
     team.add_session_summary_to_context = add_session_summary_to_context
+    team.rolling_compaction_manager = rolling_compaction_manager
 
     team.learning = learning
     team.add_learnings_to_context = add_learnings_to_context
@@ -587,6 +590,20 @@ def _set_session_summary_manager(team: "Team") -> None:
         team.add_session_summary_to_context = team.enable_session_summaries or team.session_summary_manager is not None
 
 
+def _set_rolling_compaction_manager(team: "Team") -> None:
+    if team.rolling_compaction_manager is not None:
+        if team.session_summary_manager is not None or team.enable_session_summaries:
+            log_warning(
+                "Both RollingCompactionManager and SessionSummaryManager are configured. Preferring RollingCompactionManager."
+            )
+            team.session_summary_manager = None
+            team.enable_session_summaries = False
+            team.add_session_summary_to_context = False
+
+        if team.rolling_compaction_manager.model is None:
+            team.rolling_compaction_manager.model = team.model
+
+
 def _set_compression_manager(team: "Team") -> None:
     if team.compress_tool_results and team.compression_manager is None:
         team.compression_manager = CompressionManager(
@@ -747,6 +764,8 @@ def initialize_team(team: "Team", debug_mode: Optional[bool] = None) -> None:
         _set_memory_manager(team)
     if team.enable_session_summaries or team.session_summary_manager is not None:
         _set_session_summary_manager(team)
+    if team.rolling_compaction_manager is not None:
+        _set_rolling_compaction_manager(team)
     if team.compress_tool_results or team.compression_manager is not None:
         _set_compression_manager(team)
     if team.learning is not None and team.learning is not False:

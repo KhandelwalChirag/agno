@@ -891,8 +891,26 @@ def _get_run_messages(
         # to preserve conversation continuity.
         skip_role = team.system_message_role if team.system_message_role not in ["user", "assistant", "tool"] else None
 
+        effective_last_n_runs = team.num_history_runs
+        if hasattr(session, "rolling_compaction_state") and session.rolling_compaction_state is not None:
+            state = session.rolling_compaction_state
+            runs = getattr(session, "runs", [])
+            if state.compacted_through_run_id and runs:
+                uncompacted_count = 0
+                found = False
+                for i, r in enumerate(runs):
+                    if r.run_id == state.compacted_through_run_id:
+                        uncompacted_count = len(runs) - (i + 1)
+                        found = True
+                        break
+                if found:
+                    if effective_last_n_runs is None:
+                        effective_last_n_runs = uncompacted_count
+                    else:
+                        effective_last_n_runs = min(effective_last_n_runs, uncompacted_count)
+
         history = session.get_messages(
-            last_n_runs=team.num_history_runs,
+            last_n_runs=effective_last_n_runs,
             limit=team.num_history_messages,
             skip_roles=[skip_role] if skip_role else None,
             team_id=team.id if team.parent_team_id is not None else None,
@@ -1025,8 +1043,26 @@ async def _aget_run_messages(
         # Standard conversation roles ("user", "assistant", "tool") should never be filtered
         # to preserve conversation continuity.
         skip_role = team.system_message_role if team.system_message_role not in ["user", "assistant", "tool"] else None
+        effective_last_n_runs = team.num_history_runs
+        if hasattr(session, "rolling_compaction_state") and session.rolling_compaction_state is not None:
+            state = session.rolling_compaction_state
+            runs = getattr(session, "runs", [])
+            if state.compacted_through_run_id and runs:
+                uncompacted_count = 0
+                found = False
+                for i, r in enumerate(runs):
+                    if r.run_id == state.compacted_through_run_id:
+                        uncompacted_count = len(runs) - (i + 1)
+                        found = True
+                        break
+                if found:
+                    if effective_last_n_runs is None:
+                        effective_last_n_runs = uncompacted_count
+                    else:
+                        effective_last_n_runs = min(effective_last_n_runs, uncompacted_count)
+
         history = session.get_messages(
-            last_n_runs=team.num_history_runs,
+            last_n_runs=effective_last_n_runs,
             limit=team.num_history_messages,
             skip_roles=[skip_role] if skip_role else None,
             team_id=team.id if team.parent_team_id is not None else None,
